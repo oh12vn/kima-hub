@@ -11,6 +11,7 @@ context_portal
 logs
 docs
 scripts
+!scripts/download-models.sh
 *.md
 *.log
 **/node_modules

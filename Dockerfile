@@ -2,6 +2,24 @@
 # Contains: Backend, Frontend, PostgreSQL, Redis, Audio Analyzer (Essentia AI)
 # Usage: docker run -d -p 3030:3030 -v /path/to/music:/music kima/kima
 
+# ---------------------------------------------------
+# Model source stages — resolved at build time via ARG.
+# COPY_MODELS=true:  embeds local pre-downloaded models + script into image
+# COPY_MODELS=false: empty stage, mount /app/models at runtime
+# ---------------------------------------------------
+ARG COPY_MODELS=true
+
+FROM alpine:3.19 AS models-true
+COPY scripts/download-models.sh /app/
+COPY models/ /app/models/
+
+FROM alpine:3.19 AS models-false
+RUN mkdir -p /app/models
+
+# Docker workaround: FROM with ARG expansion resolves to the correct stage.
+# COPY --from=<variable> is NOT supported, but FROM <variable> IS supported.
+FROM models-${COPY_MODELS} AS model-source
+
 FROM docker.io/library/essentia-tensorflow:4ec93bb
 
 # Add PostgreSQL 16 repository (Debian Bookworm only has PG15 by default)
@@ -101,37 +119,20 @@ RUN pip cache purge \
     && find /usr -name "*.pyc" -delete \
     && find /usr -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 
-# Download all ML models in a single layer (~800MB total)
-# IMPORTANT: Using MusiCNN models to match analyzer.py expectations
-RUN echo "Downloading ML models..." && \
-    curl -L --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 300 -o /app/models/msd-musicnn-1.pb \
-        "https://essentia.upf.edu/models/autotagging/msd/msd-musicnn-1.pb" && \
-    curl -L --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 300 -o /app/models/mood_happy-msd-musicnn-1.pb \
-        "https://essentia.upf.edu/models/classification-heads/mood_happy/mood_happy-msd-musicnn-1.pb" && \
-    curl -L --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 300 -o /app/models/mood_sad-msd-musicnn-1.pb \
-        "https://essentia.upf.edu/models/classification-heads/mood_sad/mood_sad-msd-musicnn-1.pb" && \
-    curl -L --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 300 -o /app/models/mood_relaxed-msd-musicnn-1.pb \
-        "https://essentia.upf.edu/models/classification-heads/mood_relaxed/mood_relaxed-msd-musicnn-1.pb" && \
-    curl -L --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 300 -o /app/models/mood_aggressive-msd-musicnn-1.pb \
-        "https://essentia.upf.edu/models/classification-heads/mood_aggressive/mood_aggressive-msd-musicnn-1.pb" && \
-    curl -L --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 300 -o /app/models/mood_party-msd-musicnn-1.pb \
-        "https://essentia.upf.edu/models/classification-heads/mood_party/mood_party-msd-musicnn-1.pb" && \
-    curl -L --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 300 -o /app/models/mood_acoustic-msd-musicnn-1.pb \
-        "https://essentia.upf.edu/models/classification-heads/mood_acoustic/mood_acoustic-msd-musicnn-1.pb" && \
-    curl -L --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 300 -o /app/models/mood_electronic-msd-musicnn-1.pb \
-        "https://essentia.upf.edu/models/classification-heads/mood_electronic/mood_electronic-msd-musicnn-1.pb" && \
-    curl -L --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 300 -o /app/models/danceability-msd-musicnn-1.pb \
-        "https://essentia.upf.edu/models/classification-heads/danceability/danceability-msd-musicnn-1.pb" && \
-    curl -L --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 300 -o /app/models/deam-msd-musicnn-2.pb \
-        "https://essentia.upf.edu/models/classification-heads/deam/deam-msd-musicnn-2.pb" && \
-    curl -L --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 300 -o /app/models/emomusic-msd-musicnn-2.pb \
-        "https://essentia.upf.edu/models/classification-heads/emomusic/emomusic-msd-musicnn-2.pb" && \
-    curl -L --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 600 -o /tmp/clap_full.pt \
-        "https://huggingface.co/lukewys/laion_clap/resolve/main/music_audioset_epoch_15_esc_90.14.pt" && \
-    python3 -c "import torch; ckpt = torch.load('/tmp/clap_full.pt', map_location='cpu', weights_only=False); torch.save({'state_dict': ckpt['state_dict']}, '/app/models/music_audioset_epoch_15_esc_90.14.pt')" && \
-    rm /tmp/clap_full.pt && \
-    echo "All ML models downloaded" && \
-    ls -lh /app/models/
+# Conditional model embedding — resolved from model-source stage
+# model-source resolves to models-true or models-false based on COPY_MODELS ARG
+ARG COPY_MODELS
+
+COPY --from=model-source /app/ /app/
+
+# Run download script for any missing models (only when COPY_MODELS=true,
+# models-true stage provides the script; models-false stage doesn't)
+RUN if [ "$COPY_MODELS" = "true" ]; then \
+        mkdir -p /app/models && \
+        bash /app/download-models.sh /app/models; \
+    else \
+        echo "COPY_MODELS=false: models not embedded. Mount volume at /app/models at runtime."; \
+    fi
 
 # Copy audio analyzer scripts
 COPY services/audio-analyzer/analyzer.py /app/audio-analyzer/
