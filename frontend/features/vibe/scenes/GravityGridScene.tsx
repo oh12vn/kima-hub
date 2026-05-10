@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect, useLayoutEffect, Suspense } from "react";
+import { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
     PerspectiveCamera,
@@ -1134,6 +1134,36 @@ export function GravityGridScene({
     const [animated, setAnimated] = useState(true);
     const recenterRef = useRef<(() => void) | null>(null);
     const [contextMenu, setContextMenu] = useState<{ trackId: string; x: number; y: number } | null>(null);
+    const [webglOk, setWebglOk] = useState<boolean | null>(null);
+
+    // Check WebGL availability before rendering the canvas
+    useEffect(() => {
+        const canvas = document.createElement("canvas");
+        const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
+        setWebglOk(!!gl);
+    }, []);
+
+    if (webglOk === null) {
+        return (
+            <div className="w-full h-full flex items-center justify-center vibe-map-bg">
+                <div className="text-center">
+                    <div className="w-6 h-6 border-2 border-[var(--color-ai)] border-t-transparent rounded-full animate-spin mx-auto mb-3 opacity-60" />
+                    <p className="text-white/40 text-sm tracking-wide">Initializing WebGL</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!webglOk) {
+        return (
+            <div className="w-full h-full flex items-center justify-center vibe-map-bg">
+                <div className="text-center max-w-xs">
+                    <p className="text-white/40 text-sm">WebGL not available</p>
+                    <p className="text-white/20 text-xs mt-1">Galaxy view requires WebGL. Try switching to Map view.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full h-full relative" onContextMenu={(e) => e.preventDefault()}>
@@ -1150,8 +1180,7 @@ export function GravityGridScene({
                 style={{ background: "#000000" }}
                 onPointerMissed={onBackgroundClick}
             >
-                <Suspense fallback={null}>
-                    <SceneContent
+                <SceneContent
                         tracks={tracks}
                         highlightedIds={highlightedIds}
                         playingTrackId={playingTrackId}
@@ -1167,7 +1196,6 @@ export function GravityGridScene({
                         onShowContextMenu={(trackId, x, y) => setContextMenu({ trackId, x, y })}
                         onRecenterRef={recenterRef}
                     />
-                </Suspense>
             </Canvas>
 
             <div className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-[max(0.75rem,env(safe-area-inset-right))] z-10 flex gap-2">
