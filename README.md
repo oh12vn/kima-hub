@@ -325,6 +325,17 @@ docker compose pull
 docker compose up -d
 ```
 
+**Building Docker image from source:**
+
+Building the normal way
+```bash
+docker build --progress=plain -t kima:customize .
+```
+Building the with mounting models on external volume
+```bash
+docker build --build-arg COPY_MODELS=false --progress=plain -t kima:customize .
+```
+
 ### Bind-mounting `/data` on Linux
 
 Named volumes are recommended. If you bind-mount `/data`, make sure required subdirectories exist and are writable by the container service users.
