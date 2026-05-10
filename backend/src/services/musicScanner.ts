@@ -55,6 +55,43 @@ export class MusicScannerService {
     private progressCallback?: (progress: ScanProgress) => void;
     private coverArtExtractor?: CoverArtExtractor;
 
+    /**
+     * Compute a relative path from the matching music root.
+     * Walks all roots and returns the first match, or falls back to
+     * relative from the first root if none match (shouldn't happen but
+     * keeps type safety).
+     */
+    private relativeToAny(musicPaths: string[], absolutePath: string): string {
+        // Normalize and sort by length descending so longer/more specific paths match first
+        // This prevents /music from matching /music2/foo.flac
+        const normalized = musicPaths
+            .map((p) => path.resolve(p))
+            .sort((a, b) => b.length - a.length);
+
+        for (const mp of normalized) {
+            // Match only if the path starts with the root + separator (or exact match)
+            if (absolutePath.startsWith(mp + path.sep) || absolutePath === mp) {
+                return path.relative(mp, absolutePath);
+            }
+        }
+        // Fallback: shouldn't reach here if audioFiles came from the roots
+        return path.relative(normalized[0], absolutePath);
+    }
+
+    /**
+     * Resolve a stored relative path back to an absolute path.
+     */
+    private resolveAbsolutePath(musicPaths: string[], relativePath: string): string {
+        for (const mp of musicPaths) {
+            const candidate = path.join(mp, relativePath);
+            try {
+                if (fs.existsSync(candidate)) return candidate;
+            } catch { /* ignore */ }
+        }
+        // Fallback to first root
+        return path.join(musicPaths[0], relativePath);
+    }
+
     constructor(
         progressCallback?: (progress: ScanProgress) => void,
         coverCachePath?: string
@@ -68,7 +105,7 @@ export class MusicScannerService {
     /**
      * Scan the music directory and update the database
      */
-    async scanLibrary(musicPath: string): Promise<ScanResult> {
+    async scanLibrary(musicPaths: string[]): Promise<ScanResult> {
         const startTime = Date.now();
         const result: ScanResult = {
             tracksAdded: 0,
@@ -79,11 +116,17 @@ export class MusicScannerService {
             duration: 0,
         };
 
-        logger.debug(`Starting library scan: ${musicPath}`);
+        logger.info(`Starting library scan: [${musicPaths.join(', ')}]`);
 
-        // Step 1: Find all audio files
-        const audioFiles = await this.findAudioFiles(musicPath);
-        logger.debug(`Found ${audioFiles.length} audio files`);
+        // Step 1: Find all audio files across all roots
+        const allAudioFiles: string[] = [];
+        for (const mp of musicPaths) {
+            const files = await this.findAudioFiles(mp);
+            logger.info(`Found ${files.length} audio files in ${mp}`);
+            allAudioFiles.push(...files);
+        }
+        const audioFiles = allAudioFiles;
+        logger.info(`Found ${audioFiles.length} total audio files`);
 
         // Step 2: Get existing tracks from database
         const existingTracks = await prisma.track.findMany({
@@ -110,7 +153,7 @@ export class MusicScannerService {
         for (const audioFile of audioFiles) {
             await this.scanQueue.add(async () => {
                 try {
-                    const relativePath = path.relative(musicPath, audioFile);
+                    const relativePath = this.relativeToAny(musicPaths, audioFile);
                     progress.currentFile = relativePath;
                     this.progressCallback?.(progress);
 
@@ -148,7 +191,7 @@ export class MusicScannerService {
                     await this.processAudioFile(
                         audioFile,
                         relativePath,
-                        musicPath
+                        musicPaths[0] // primary root for cache operations
                     );
                 } catch (err: any) {
                     const error = {
@@ -159,7 +202,7 @@ export class MusicScannerService {
                     progress.errors.push(error);
                     logger.error(`Error processing ${audioFile}:`, err);
 
-                    const relativePath = path.relative(musicPath, audioFile);
+                    const relativePath = this.relativeToAny(musicPaths, audioFile);
                     const existingTrack = tracksByPath.get(relativePath);
                     if (existingTrack) {
                         await prisma.track.update({
@@ -181,7 +224,7 @@ export class MusicScannerService {
 
         // Step 4: Remove tracks for files that no longer exist
         const scannedPaths = new Set(
-            audioFiles.map((f) => path.relative(musicPath, f))
+            audioFiles.map((f) => this.relativeToAny(musicPaths, f))
         );
         let tracksToRemove = existingTracks.filter(
             (t) => !scannedPaths.has(t.filePath)
@@ -192,7 +235,7 @@ export class MusicScannerService {
             const beforeCount = tracksToRemove.length;
             const existChecks = await Promise.all(
                 tracksToRemove.map(async (t) => {
-                    const fullPath = path.join(musicPath, t.filePath);
+                    const fullPath = this.resolveAbsolutePath(musicPaths, t.filePath);
                     try {
                         await fs.promises.access(fullPath);
                         return { track: t, exists: true };
@@ -568,8 +611,13 @@ export class MusicScannerService {
         relativePath: string,
         musicPath: string
     ): Promise<void> {
-        // Extract metadata
-        const metadata = await parseFile(absolutePath);
+        let metadata;
+        try {
+            metadata = await parseFile(absolutePath);
+        } catch (parseError: any) {
+            logger.warn(`[Scanner] Failed to parse ${relativePath}: ${parseError.message}`);
+            return; // Skip this file rather than crashing the entire scan
+        }
         const stats = await fs.promises.stat(absolutePath);
 
         // Parse basic info

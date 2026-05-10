@@ -410,7 +410,7 @@ router.get("/:id/cover", async (req, res) => {
         // Fallback: check if cover exists on disk even if DB path is empty
         if (!coverPath) {
             const fallbackPath = path.join(
-                config.music.musicPath,
+                config.music.musicPaths[0],
                 "cover-cache",
                 "audiobooks",
                 `${id}.jpg`
@@ -614,12 +614,12 @@ router.get("/:id/stream", requireAuthOrToken, async (req, res) => {
         res.status(responseStatus);
 
         // Set content type - ensure it's audio
-        const contentType = headers["content-type"] || "audio/mpeg";
+        const contentType = String(headers["content-type"]) || "audio/mpeg";
         res.setHeader("Content-Type", contentType);
 
         // Set other headers
         if (headers["content-length"]) {
-            res.setHeader("Content-Length", headers["content-length"]);
+            res.setHeader("Content-Length", String(headers["content-length"]));
         }
         if (headers["accept-ranges"]) {
             res.setHeader("Accept-Ranges", headers["accept-ranges"]);

@@ -32,18 +32,18 @@ interface StreamFileInfo {
 
 export class AudioStreamingService {
     private transcodeQueue = new PQueue({ concurrency: 3 });
-    private musicPath: string;
+    private musicPaths: string[];
     private transcodeCachePath: string;
     private transcodeCacheMaxGb: number;
     private evictionInterval: NodeJS.Timeout | null = null;
     private inFlightTranscodes = new Map<string, Promise<string>>();
 
     constructor(
-        musicPath: string,
+        musicPaths: string[],
         transcodeCachePath: string,
         transcodeCacheMaxGb: number
     ) {
-        this.musicPath = musicPath;
+        this.musicPaths = Array.isArray(musicPaths) ? musicPaths : [musicPaths];
         this.transcodeCachePath = transcodeCachePath;
         this.transcodeCacheMaxGb = transcodeCacheMaxGb;
 
@@ -506,12 +506,12 @@ export class AudioStreamingService {
 let singletonInstance: AudioStreamingService | null = null;
 
 export function getAudioStreamingService(
-    musicPath: string,
+    musicPaths: string[],
     transcodeCachePath: string,
     transcodeCacheMaxGb: number
 ): AudioStreamingService {
     if (!singletonInstance) {
-        singletonInstance = new AudioStreamingService(musicPath, transcodeCachePath, transcodeCacheMaxGb);
+        singletonInstance = new AudioStreamingService(musicPaths, transcodeCachePath, transcodeCacheMaxGb);
     }
     return singletonInstance;
 }

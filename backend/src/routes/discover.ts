@@ -902,7 +902,7 @@ router.post("/retry-unavailable", async (req, res) => {
         }
 
         const settings = await getSystemSettings();
-        if (!settings?.musicPath) {
+        if (!settings?.musicPath && config.music.musicPaths.length === 0) {
             return res.status(400).json({ error: "Music path not configured" });
         }
 
@@ -1486,7 +1486,7 @@ router.delete("/clear", async (req, res) => {
                     // Try to delete files directly from the discovery folder
                     try {
                         const discoveryPath = path.join(
-                            config.music.musicPath,
+                            config.music.musicPaths[0],
                             "discovery"
                         );
                         // Try common folder structures: /discovery/Artist/Album or /discovery/Artist - Album
@@ -2080,7 +2080,7 @@ router.delete("/clear", async (req, res) => {
         try {
             await scanQueue.add("scan", {
                 userId,
-                musicPath: config.music.musicPath,
+                musicPaths: config.music.musicPaths,
             });
             logger.debug(`   Library scan queued successfully`);
         } catch (scanError: any) {

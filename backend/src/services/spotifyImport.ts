@@ -7,6 +7,7 @@ import { spotifyService, SpotifyTrack, SpotifyPlaylist } from "./spotify";
 import { logger } from "../utils/logger";
 import { musicBrainzService } from "./musicbrainz";
 import { deezerService } from "./deezer";
+import { getMusicPaths } from "../config";
 import {
   createPlaylistLogger,
   logPlaylistEvent,
@@ -2585,7 +2586,7 @@ class SpotifyImportService {
     }
 
     const settings = await getSystemSettings();
-    if (!settings?.musicPath) {
+    if (!settings?.musicPath && getMusicPaths().length === 0) {
       logger?.debug(`Auto-retry: No music path configured, skipping`);
       return;
     }

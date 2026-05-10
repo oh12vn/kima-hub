@@ -6,6 +6,7 @@ import { requireAuthOrToken } from "../middleware/auth";
 import { prisma } from "../utils/db";
 import { sessionLog } from "../utils/playlistLogger";
 import { safeError } from "../utils/errors";
+import { config } from "../config";
 
 const router = Router();
 
@@ -710,10 +711,10 @@ router.get("/:id/pending/:trackId/preview/stream", async (req, res) => {
 
         res.setHeader(
             "Content-Type",
-            upstream.headers["content-type"] || "audio/mpeg"
+            String(upstream.headers["content-type"]) || "audio/mpeg"
         );
         if (upstream.headers["content-length"]) {
-            res.setHeader("Content-Length", upstream.headers["content-length"]);
+            res.setHeader("Content-Length", String(upstream.headers["content-length"]));
         }
         if (upstream.headers["accept-ranges"]) {
             res.setHeader("Accept-Ranges", upstream.headers["accept-ranges"]);
@@ -784,7 +785,7 @@ router.post("/:id/pending/retry-all", async (req, res) => {
         const { getSystemSettings } = await import("../utils/systemSettings");
 
         const settings = await getSystemSettings();
-        if (!settings?.musicPath) {
+        if (!settings?.musicPath && config.music.musicPaths.length === 0) {
             return res.status(400).json({ error: "Music path not configured" });
         }
         if (!settings?.soulseekUsername || !settings?.soulseekPassword) {
@@ -1022,7 +1023,7 @@ router.post("/:id/pending/:trackId/retry", async (req, res) => {
         const { getSystemSettings } = await import("../utils/systemSettings");
 
         const settings = await getSystemSettings();
-        if (!settings?.musicPath) {
+        if (!settings?.musicPath && config.music.musicPaths.length === 0) {
             sessionLog("PENDING-RETRY", `Music path not configured`, "WARN");
             await prisma.downloadJob.update({
                 where: { id: downloadJob.id },

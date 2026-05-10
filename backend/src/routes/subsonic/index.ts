@@ -122,13 +122,13 @@ subsonicRouter.all("/getScanStatus.view", async (req: Request, res: Response) =>
 });
 
 subsonicRouter.all("/startScan.view", async (req: Request, res: Response) => {
-    if (!config.music.musicPath) {
+    if (config.music.musicPaths.length === 0) {
         return subsonicError(req, res, SubsonicError.GENERIC, "Music path not configured");
     }
 
     await scanQueue.add("scan", {
         userId: req.user!.id,
-        musicPath: config.music.musicPath,
+        musicPath: config.music.musicPaths,
     });
 
     const counts = await scanQueue.getJobCounts("active", "waiting", "delayed");

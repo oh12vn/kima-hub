@@ -1,5 +1,6 @@
 import { logger } from "../utils/logger";
 import { safeError } from "../utils/errors";
+import { config } from "../config";
 
 /**
  * Soulseek routes - Direct connection via vendored soulseek-ts
@@ -367,7 +368,7 @@ router.post(
             }
 
             const settings = await getSystemSettings();
-            const musicPath = settings?.musicPath;
+            const musicPath = settings?.musicPath || config.music.musicPaths[0];
 
             if (!musicPath) {
                 return res.status(400).json({

@@ -7,9 +7,12 @@
 #   - High-quality audio streaming
 #
 # Usage:
-#   1. Edit the MUSIC_PATH below
+#   1. Edit the MUSIC_PATH / MUSIC_PATHS below
 #   2. Run: docker compose -f docker-compose.prod.yml up -d
 #   3. Open http://localhost:3030
+#
+# Multi-volume: Uncomment the additional volume mounts and set MUSIC_PATHS
+# Example: MUSIC_PATHS=/music,/music2,/music3
 
 services:
   kima:
@@ -18,13 +21,17 @@ services:
     ports:
       - "${PORT:-3030}:3030"
     volumes:
-      # REQUIRED: Path to your music library
+      # PRIMARY music library (mounted to /music)
       - ${MUSIC_PATH:-/path/to/your/music}:/music
+      # Additional music libraries (mount each to a separate container path)
+      # - ${MUSIC_PATH_2:-/path/to/music2}:/music2
+      # - ${MUSIC_PATH_3:-/path/to/music3}:/music3
       # Persistent data (database, cache, etc.)
       - kima_data:/data
     environment:
       - TZ=${TZ:-UTC}
       - SESSION_SECRET=${SESSION_SECRET:-}
+      - MUSIC_PATHS=${MUSIC_PATHS:-/music}
       # Lidarr webhook callback URL - how Lidarr reaches Kima when downloads complete
       # Default uses host.docker.internal which works on most setups with extra_hosts below
       # Override if using custom Docker networks: e.g., http://192.168.0.20:3030

@@ -15,12 +15,17 @@ services:
         ports:
             - "${FRONTEND_PORT:-3030}:3030"
         volumes:
-            # IMPORTANT: CHANGE THIS to your music library path
+            # PRIMARY music library
             - ${MUSIC_PATH:-/path/to/your/music}:/music
+            # Additional music libraries (mount each to a separate container path)
+            # Set MUSIC_PATHS=/music,/music2 to enable scanning of all volumes
+            # - ${MUSIC_PATH_2:-/path/to/music2}:/music2
+            # - ${MUSIC_PATH_3:-/path/to/music3}:/music3
             # Persistent data (database, cache, covers, etc.)
             - kima_data:/data
         environment:
             - TZ=${TZ:-America/Chicago}
+            - MUSIC_PATHS=${MUSIC_PATHS:-/music}
             # Generate with: openssl rand -base64 32
             - SESSION_SECRET=${SESSION_SECRET:-changeme-generate-secure-key}
             # Lidarr webhook callback URL - how Lidarr reaches Kima when downloads complete

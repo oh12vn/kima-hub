@@ -138,7 +138,7 @@ async function reconcileDownloadJobsWithScan(): Promise<number> {
 
 export interface ScanJobData {
     userId: string;
-    musicPath?: string; // Optional: use custom path or default from config
+    musicPaths?: string[]; // Optional: override default music paths from config
     albumMbid?: string; // Optional: if scan triggered by download completion
     artistMbid?: string; // Optional: if scan triggered by download completion
     source?: string; // Optional: source of scan (e.g., "lidarr-webhook", "discover-weekly-completion", "spotify-import")
@@ -161,7 +161,7 @@ export async function processScan(
 ): Promise<ScanJobResult> {
     const {
         userId,
-        musicPath,
+        musicPaths,
         albumMbid,
         artistMbid,
         source,
@@ -212,13 +212,15 @@ export async function processScan(
         }
     }, coverCachePath);
 
-    // Use provided music path or fall back to config
-    const scanPath = musicPath || config.music.musicPath;
+  // Use provided music paths or fall back to config
+  const scanPaths = job.data.musicPaths
+    ? job.data.musicPaths
+    : config.music.musicPaths;
 
-    logger.debug(`[ScanJob ${job.id}] Scanning path: ${scanPath}`);
+    logger.debug(`[ScanJob ${job.id}] Scanning paths: [${scanPaths.join(', ')}]`);
 
     try {
-        const result = await scanner.scanLibrary(scanPath);
+        const result = await scanner.scanLibrary(scanPaths);
 
         await job.updateProgress(100);
 

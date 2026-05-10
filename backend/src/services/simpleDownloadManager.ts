@@ -150,7 +150,7 @@ class SimpleDownloadManager {
         try {
             // Get music path from settings with fallback to config
             const settings = await getSystemSettings();
-            const musicPath = settings?.musicPath || config.music.musicPath;
+            const musicPath = settings?.musicPath || config.music.musicPaths[0];
 
             // Fetch artist MBID from MusicBrainz using the album MBID
             let artistMbid: string | undefined;
@@ -1144,7 +1144,7 @@ class SimpleDownloadManager {
 
             // Get music path from settings with fallback to config
             const settings = await getSystemSettings();
-            const defaultMusicPath = settings?.musicPath || config.music.musicPath;
+            const defaultMusicPath = settings?.musicPath || config.music.musicPaths[0];
 
             // Create new job for the next album
             const newJob = await prisma.downloadJob.create({

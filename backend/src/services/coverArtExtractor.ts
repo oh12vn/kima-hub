@@ -33,7 +33,13 @@ export class CoverArtExtractor {
             }
 
             // Parse audio file metadata
-            const metadata = await parseFile(audioFilePath);
+            let metadata;
+            try {
+                metadata = await parseFile(audioFilePath);
+            } catch (parseError: any) {
+                logger.debug(`[COVER-ART] Failed to parse ${path.basename(audioFilePath)}: ${parseError.message}`);
+                return null;
+            }
 
             // Get embedded picture
             const picture = metadata.common.picture?.[0];

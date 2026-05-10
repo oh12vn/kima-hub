@@ -128,7 +128,7 @@ router.post("/", async (req, res) => {
 
         // Determine root folder path based on download type
         const settings = await getSystemSettings();
-        const baseMusicPath = settings?.musicPath || config.music.musicPath;
+        const baseMusicPath = settings?.musicPath || config.music.musicPaths[0];
         const rootFolderPath =
             downloadType === "discovery"
                 ? `${baseMusicPath}/discovery`

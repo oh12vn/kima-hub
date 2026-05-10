@@ -3,7 +3,7 @@
  *
  * Verifies that:
  * 1. Music path comes from settings when available
- * 2. Falls back to config.music.musicPath when settings is null/undefined
+ * 2. Falls back to config.music.musicPaths[0] when settings is null/undefined
  */
 
 // All mocks must be declared before imports
@@ -34,7 +34,7 @@ jest.mock('../../utils/systemSettings', () => ({
 jest.mock('../../config', () => ({
     config: {
         music: {
-            musicPath: '/default/music/path',
+            musicPaths: ['/default/music/path'],
         },
     },
 }));
@@ -52,7 +52,7 @@ describe('Music Path Configuration', () => {
     describe('getMusicPath helper behavior', () => {
         const getMusicPath = async () => {
             const settings = await getSystemSettings();
-            return settings?.musicPath || config.music.musicPath;
+            return settings?.musicPath || config.music.musicPaths[0];
         };
 
         it('should return settings.musicPath when available', async () => {
@@ -97,14 +97,14 @@ describe('Music Path Configuration', () => {
             expect(musicPath).toBe('/custom/music/path');
         });
 
-        it('should fallback to config.music.musicPath when settings is null', async () => {
+        it('should fallback to config.music.musicPaths[0] when settings is null', async () => {
             mockGetSystemSettings.mockResolvedValue(null);
 
             const musicPath = await getMusicPath();
             expect(musicPath).toBe('/default/music/path');
         });
 
-        it('should fallback to config.music.musicPath when settings.musicPath is null', async () => {
+        it('should fallback to config.music.musicPaths[0] when settings.musicPath is null', async () => {
             mockGetSystemSettings.mockResolvedValue({
                 id: 'default',
                 musicPath: null,
@@ -155,7 +155,7 @@ describe('Music Path Configuration', () => {
             const nullPath: string | null = null;
             const undefinedPath: string | undefined = undefined;
 
-            // Test the pattern: settings?.musicPath || config.music.musicPath
+            // Test the pattern: settings?.musicPath || config.music.musicPaths[0]
             expect(settingsMusicPath || configMusicPath).toBe('/custom/path');
             expect(nullPath || configMusicPath).toBe('/music');
             expect(undefinedPath || configMusicPath).toBe('/music');

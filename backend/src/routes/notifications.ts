@@ -3,6 +3,7 @@ import { logger } from "../utils/logger";
 import { notificationService } from "../services/notificationService";
 import { requireAuth } from "../middleware/auth";
 import { prisma } from "../utils/db";
+import { config } from "../config";
 
 const router = Router();
 
@@ -365,7 +366,7 @@ router.post(
                 );
 
                 const settings = await getSystemSettings();
-                if (!settings?.musicPath) {
+                if (!settings?.musicPath && config.music.musicPaths.length === 0) {
                     await prisma.downloadJob.update({
                         where: { id: newJobRecord.id },
                         data: {
@@ -566,7 +567,7 @@ router.post(
                 );
 
                 const settings = await getSystemSettings();
-                const musicPath = settings?.musicPath;
+                const musicPath = settings?.musicPath || config.music.musicPaths[0];
 
                 if (!musicPath) {
                     await prisma.downloadJob.update({

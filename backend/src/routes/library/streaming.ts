@@ -4,6 +4,7 @@ import { logger } from "../../utils/logger";
 import { config } from "../../config";
 import { getAudioStreamingService } from "../../services/audioStreaming";
 import path from "path";
+import { resolveTrackAbsolute } from "../../utils/musicPathResolver";
 
 const MAX_CONCURRENT_STREAMS = 2;
 interface ActiveStream {
@@ -137,15 +138,14 @@ router.get("/tracks/:id/stream", async (req, res) => {
     if (track.filePath && track.fileModified) {
       try {
         const streamingService = getAudioStreamingService(
-          config.music.musicPath,
+          config.music.musicPaths,
           config.music.transcodeCachePath,
           config.music.transcodeCacheMaxGb,
         );
 
-        const normalizedFilePath = track.filePath.replace(/\\/g, "/");
-        const absolutePath = path.join(
-          config.music.musicPath,
-          normalizedFilePath,
+        const absolutePath = resolveTrackAbsolute(
+          config.music.musicPaths,
+          track.filePath,
         );
 
         logger.debug(
@@ -182,14 +182,13 @@ router.get("/tracks/:id/stream", async (req, res) => {
           logger.warn(
             `[STREAM] FFmpeg not available, falling back to original quality`,
           );
-          const fallbackFilePath = track.filePath.replace(/\\/g, "/");
-          const absolutePath = path.join(
-            config.music.musicPath,
-            fallbackFilePath,
+          const absolutePath = resolveTrackAbsolute(
+            config.music.musicPaths,
+            track.filePath,
           );
 
           const streamingService = getAudioStreamingService(
-            config.music.musicPath,
+            config.music.musicPaths,
             config.music.transcodeCachePath,
             config.music.transcodeCacheMaxGb,
           );

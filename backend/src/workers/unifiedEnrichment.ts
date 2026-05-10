@@ -1138,7 +1138,7 @@ async function executeMoodTagsPhase(): Promise<number> {
 const SCAN_BATCH_SIZE = 100;
 
 async function executeScanPhase(): Promise<number> {
-    const musicPath = config.music.musicPath;
+    const musicPath = config.music.musicPaths[0];
     if (!musicPath) return 0;
 
     const tracks = await prisma.track.findMany({

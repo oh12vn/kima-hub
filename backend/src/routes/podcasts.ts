@@ -1139,7 +1139,7 @@ router.get("/:podcastId/episodes/:episodeId/stream", requireAuthOrToken, async (
             try {
                 const headResponse = await axios.head(episode.audioUrl);
                 fileSize = parseInt(
-                    headResponse.headers["content-length"] || "0"
+                    String(headResponse.headers["content-length"]) || "0"
                 );
                 if (Number.isFinite(fileSize) && fileSize > 0) {
                     await prisma.podcastEpisode.update({
@@ -1197,7 +1197,7 @@ router.get("/:podcastId/episodes/:episodeId/stream", requireAuthOrToken, async (
                         "Content-Type": episode.mimeType || "audio/mpeg",
                         "Accept-Ranges": "bytes",
                         "Content-Length":
-                            response.headers["content-length"] || fileSize,
+                            String(response.headers["content-length"]) || String(fileSize),
                         "Cache-Control": "public, max-age=3600",
                         "Access-Control-Allow-Origin":
                             req.headers.origin || "*",
@@ -1261,7 +1261,7 @@ router.get("/:podcastId/episodes/:episodeId/stream", requireAuthOrToken, async (
                 res.writeHead(200, {
                     "Content-Type": episode.mimeType || "audio/mpeg",
                     "Accept-Ranges": "bytes",
-                    ...(contentLength && { "Content-Length": contentLength }),
+                    ...(contentLength && { "Content-Length": String(contentLength) }),
                     "Cache-Control": "public, max-age=3600",
                     "Access-Control-Allow-Origin": req.headers.origin || "*",
                     "Access-Control-Allow-Credentials": "true",
@@ -1309,7 +1309,7 @@ router.get("/:podcastId/episodes/:episodeId/stream", requireAuthOrToken, async (
                 res.writeHead(200, {
                     "Content-Type": episode.mimeType || "audio/mpeg",
                     "Accept-Ranges": "bytes",
-                    ...(contentLength && { "Content-Length": contentLength }),
+                    ...(contentLength && { "Content-Length": String(contentLength) }),
                     "Cache-Control": "public, max-age=3600",
                     "Access-Control-Allow-Origin": req.headers.origin || "*",
                     "Access-Control-Allow-Credentials": "true",

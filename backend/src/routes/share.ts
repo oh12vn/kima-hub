@@ -345,7 +345,7 @@ router.get("/:token/stream/:trackId", shareStreamLimiter, async (req: Request, r
             return res.status(404).json({ error: "Track file not found" });
         }
 
-        const musicPath = config.music.musicPath;
+        const musicPath = config.music.musicPaths[0];
         const resolvedMusicPath = path.resolve(musicPath);
         const fullPath = path.resolve(resolvedMusicPath, track.filePath);
 
@@ -389,7 +389,7 @@ router.get("/:token/stream/:trackId", shareStreamLimiter, async (req: Request, r
 
         const mimeType = getMimeType(track.filePath);
         const streamingService = getAudioStreamingService(
-            config.music.musicPath,
+            config.music.musicPaths,
             config.music.transcodeCachePath,
             config.music.transcodeCacheMaxGb,
         );

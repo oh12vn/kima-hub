@@ -217,30 +217,36 @@ async function cleanupLegacySlskdJobs(): Promise<void> {
 export async function organizeSingles(): Promise<void> {
     sessionLog('ORGANIZE', '=== STARTING SINGLES ORGANIZATION ===');
 
-    // Get music path from environment variable
-    let musicPath = process.env.MUSIC_PATH;
+    // Get music paths from environment variable (MUSIC_PATHS comma-separated)
+    let musicPaths: string[] = [];
+    const rawPaths = process.env.MUSIC_PATHS || process.env.MUSIC_PATH;
+    if (rawPaths) {
+        musicPaths = rawPaths.split(',').map(p => p.trim()).filter(Boolean);
+    }
 
     // If not in env, try reading from .env file in project root
-    if (!musicPath) {
+    if (musicPaths.length === 0) {
         try {
             const envPath = path.join(process.cwd(), "..", ".env");
             const envContent = fs.readFileSync(envPath, "utf-8");
-            const match = envContent.match(/^MUSIC_PATH=(.+)$/m);
+            const match = envContent.match(/^MUSIC_PATHS=(.+)$/m) || envContent.match(/^MUSIC_PATH=(.+)$/m);
             if (match) {
-                musicPath = match[1].trim().replace(/^["']|["']$/g, "");
+                const raw = match[1].trim().replace(/^["']|["']$/g, "");
+                musicPaths = raw.split(',').map(p => p.trim()).filter(Boolean);
             }
         } catch (error) {
             // .env file doesn't exist or can't be read
         }
     }
 
-    if (!musicPath) {
-        const error = "MUSIC_PATH is not set. Cannot organize downloads.";
+    if (musicPaths.length === 0) {
+        const error = "MUSIC_PATHS is not set. Cannot organize downloads.";
         sessionLog('ORGANIZE', error, 'ERROR');
         throw new Error(error);
     }
 
-    sessionLog('ORGANIZE', `Music path: ${musicPath.replace(/\\/g, "/")}`);
+    const musicPath = musicPaths[0];
+    sessionLog('ORGANIZE', `Music path(s): ${musicPaths.join(', ')}`);
 
     // Run one-time migration of existing Soulseek files
     await migrateExistingSoulseekFiles(musicPath);

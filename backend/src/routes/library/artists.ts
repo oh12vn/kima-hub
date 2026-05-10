@@ -919,7 +919,7 @@ router.delete("/artists/:id", async (req, res) => {
         if (track.filePath) {
           try {
             const absolutePath = path.join(
-              config.music.musicPath,
+              config.music.musicPaths[0],
               track.filePath,
             );
 
@@ -932,15 +932,15 @@ router.delete("/artists/:id", async (req, res) => {
                 const actualArtistFolder =
                   pathParts[0].toLowerCase() === "soulseek"
                     ? path.join(
-                        config.music.musicPath,
+                        config.music.musicPaths[0],
                         pathParts[0],
                         pathParts[1],
                       )
-                    : path.join(config.music.musicPath, pathParts[0]);
+                    : path.join(config.music.musicPaths[0], pathParts[0]);
                 artistFoldersToDelete.add(actualArtistFolder);
               } else if (pathParts.length === 1) {
                 const actualArtistFolder = path.join(
-                  config.music.musicPath,
+                  config.music.musicPaths[0],
                   pathParts[0],
                 );
                 artistFoldersToDelete.add(actualArtistFolder);
@@ -1008,9 +1008,9 @@ router.delete("/artists/:id", async (req, res) => {
     }
 
     const commonPaths = [
-      path.join(config.music.musicPath, artist.name),
-      path.join(config.music.musicPath, "Soulseek", artist.name),
-      path.join(config.music.musicPath, "discovery", artist.name),
+      path.join(config.music.musicPaths[0], artist.name),
+      path.join(config.music.musicPaths[0], "Soulseek", artist.name),
+      path.join(config.music.musicPaths[0], "discovery", artist.name),
     ];
 
     for (const commonPath of commonPaths) {

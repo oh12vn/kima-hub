@@ -69,10 +69,10 @@ router.get("/preview/:artistName/:trackTitle/stream", async (req, res) => {
 
         res.setHeader(
             "Content-Type",
-            upstream.headers["content-type"] || "audio/mpeg"
+            String(upstream.headers["content-type"]) || "audio/mpeg"
         );
         if (upstream.headers["content-length"]) {
-            res.setHeader("Content-Length", upstream.headers["content-length"]);
+            res.setHeader("Content-Length", String(upstream.headers["content-length"]));
         }
         if (upstream.headers["accept-ranges"]) {
             res.setHeader("Accept-Ranges", upstream.headers["accept-ranges"]);

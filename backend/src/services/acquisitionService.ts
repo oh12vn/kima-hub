@@ -21,6 +21,7 @@ import {
   IntegrationError,
   ConfigurationError,
 } from '../utils/errors';
+import { config } from "../config";
 
 /**
  * Context for tracking acquisition origin
@@ -466,7 +467,7 @@ class AcquisitionService {
 
         // Get music path
         const settings = await getSystemSettings();
-        const musicPath = settings?.musicPath;
+        const musicPath = settings?.musicPath || config.music.musicPaths[0];
         if (!musicPath) {
             logger.error(`[Acquisition] Music path not configured`);
             return requests.map(() => ({
@@ -551,7 +552,7 @@ class AcquisitionService {
 
         // Get music path
         const settings = await getSystemSettings();
-        const musicPath = settings?.musicPath;
+        const musicPath = settings?.musicPath || config.music.musicPaths[0];
         if (!musicPath) {
             return { success: false, error: "Music path not configured" };
         }

@@ -8,6 +8,7 @@ import { getAudioStreamingService } from "../../services/audioStreaming";
 import { config } from "../../config";
 import { bitrateToQuality, firstArtistGenre, mapSong, wrap } from "./mappers";
 import { normalizeArtistName } from "../../utils/artistNormalization";
+import { resolveTrackAbsolute } from "../../utils/musicPathResolver";
 
 export const playbackRouter = Router();
 
@@ -23,7 +24,7 @@ async function streamTrackById(
     }
 
     const normalizedFilePath = track.filePath.replace(/\\/g, "/");
-    const resolvedMusicPath = path.resolve(config.music.musicPath);
+    const resolvedMusicPath = path.resolve(config.music.musicPaths[0]);
     const absolutePath = path.resolve(resolvedMusicPath, normalizedFilePath);
 
     if (!absolutePath.startsWith(resolvedMusicPath + path.sep)) {
@@ -31,7 +32,7 @@ async function streamTrackById(
     }
 
     const streamingService = getAudioStreamingService(
-        config.music.musicPath,
+        config.music.musicPaths,
         config.music.transcodeCachePath,
         config.music.transcodeCacheMaxGb,
     );
@@ -203,7 +204,7 @@ playbackRouter.all("/download.view", wrap(async (req, res) => {
     if (!track || !track.filePath) return subsonicError(req, res, SubsonicError.NOT_FOUND, "Song not found");
 
     const normalizedFilePath = track.filePath.replace(/\\/g, "/");
-    const resolvedMusicPath = path.resolve(config.music.musicPath);
+    const resolvedMusicPath = path.resolve(config.music.musicPaths[0]);
     const absolutePath = path.resolve(resolvedMusicPath, normalizedFilePath);
 
     // Security: ensure resolved path stays within the music directory
@@ -212,7 +213,7 @@ playbackRouter.all("/download.view", wrap(async (req, res) => {
     }
 
     const streamingService = getAudioStreamingService(
-        config.music.musicPath,
+        config.music.musicPaths,
         config.music.transcodeCachePath,
         config.music.transcodeCacheMaxGb,
     );

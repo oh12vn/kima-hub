@@ -210,7 +210,7 @@ router.delete("/albums/:id", async (req, res) => {
       if (track.filePath) {
         try {
           const absolutePath = path.join(
-            config.music.musicPath,
+            config.music.musicPaths[0],
             track.filePath,
           );
 
@@ -227,7 +227,7 @@ router.delete("/albums/:id", async (req, res) => {
     try {
       const artistName = album.artist.name;
       const albumFolder = path.join(
-        config.music.musicPath,
+        config.music.musicPaths[0],
         artistName,
         album.title,
       );

@@ -115,7 +115,19 @@ TensorflowPredictMusiCNN = None  # Loaded in worker processes
 # Configuration from environment
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379')
 DATABASE_URL = os.getenv('DATABASE_URL', '')
-MUSIC_PATH = os.getenv('MUSIC_PATH', '/music')
+
+# Support multiple music paths via MUSIC_PATHS (comma-separated)
+# Falls back to MUSIC_PATH for backwards compatibility
+_raw_paths = os.getenv('MUSIC_PATHS', '')
+if _raw_paths.strip():
+    MUSIC_PATHS = [p.strip() for p in _raw_paths.split(',') if p.strip()]
+elif os.getenv('MUSIC_PATH'):
+    MUSIC_PATHS = [os.getenv('MUSIC_PATH', '/music')]
+else:
+    MUSIC_PATHS = ['/music']
+# Backwards-compat: code that expects a single string gets the first path
+MUSIC_PATH = MUSIC_PATHS[0]
+
 BATCH_SIZE = int(os.getenv('BATCH_SIZE', '10'))
 SLEEP_INTERVAL = int(os.getenv('SLEEP_INTERVAL', '5'))
 
@@ -130,6 +142,17 @@ MODEL_IDLE_TIMEOUT = int(os.getenv('MODEL_IDLE_TIMEOUT', '300'))
 
 # Debounce delay for worker resize (seconds) -- prevents pool churn when user drags a slider
 RESIZE_DEBOUNCE_SECONDS = 5
+
+
+def resolve_audio_path(file_path: str) -> str:
+    """Resolve a relative track path to an absolute path by trying all music roots."""
+    normalized = file_path.replace('\\', '/')
+    for mp in MUSIC_PATHS:
+        candidate = os.path.join(mp, normalized)
+        if os.path.exists(candidate):
+            return candidate
+    # Fallback to first root even if file doesn't exist
+    return os.path.join(MUSIC_PATHS[0], normalized)
 
 
 class DatabaseConnection:
@@ -1022,7 +1045,7 @@ def _validate_track_in_process(args: Tuple[str, str]) -> Tuple[str, dict]:
     before queuing to Python.
     """
     track_id, file_path = args
-    full_path = os.path.join(MUSIC_PATH, file_path.replace('\\', '/'))
+    full_path = resolve_audio_path(file_path)
 
     if not os.path.exists(full_path):
         return (track_id, {'valid': False, 'error': 'File not found'})
@@ -1066,7 +1089,7 @@ def _analyze_track_in_process(args: Tuple[str, str]) -> Tuple[str, str, Dict[str
         
         # Normalize path separators (Windows paths -> Unix)
         normalized_path = file_path.replace('\\', '/')
-        full_path = os.path.join(MUSIC_PATH, normalized_path)
+        full_path = resolve_audio_path(normalized_path)
         
         # Use os.fsencode/fsdecode for filesystem-safe encoding
         try:

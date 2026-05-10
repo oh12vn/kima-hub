@@ -62,7 +62,25 @@ logger = logging.getLogger('clap-analyzer')
 # Configuration from environment
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379')
 DATABASE_URL = os.getenv('DATABASE_URL', '')
-MUSIC_PATH = os.getenv('MUSIC_PATH', '/music')
+
+_raw_paths = os.getenv('MUSIC_PATHS', '')
+if _raw_paths.strip():
+    MUSIC_PATHS = [p.strip() for p in _raw_paths.split(',') if p.strip()]
+elif os.getenv('MUSIC_PATH'):
+    MUSIC_PATHS = [os.getenv('MUSIC_PATH', '/music')]
+else:
+    MUSIC_PATHS = ['/music']
+MUSIC_PATH = MUSIC_PATHS[0]
+
+def resolve_audio_path(file_path: str) -> str:
+    """Resolve a relative track path to an absolute path by trying all music roots."""
+    normalized = file_path.replace('\\', '/')
+    for mp in MUSIC_PATHS:
+        candidate = os.path.join(mp, normalized)
+        if os.path.exists(candidate):
+            return candidate
+    return os.path.join(MUSIC_PATHS[0], normalized)
+
 SLEEP_INTERVAL = int(os.getenv('SLEEP_INTERVAL', '5'))
 NUM_WORKERS = int(os.getenv('NUM_WORKERS', '2'))
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://backend:3006')
@@ -612,7 +630,7 @@ class BullMQVibeWorker:
         await loop.run_in_executor(None, self._update_track_status, track_id, "processing")
 
         normalized_path = file_path.replace("\\", "/")
-        full_path = os.path.join(MUSIC_PATH, normalized_path)
+        full_path = resolve_audio_path(normalized_path)
 
         try:
             file_size = os.path.getsize(full_path)

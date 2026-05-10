@@ -577,7 +577,7 @@ router.delete("/tracks/:id", async (req, res) => {
 
     if (track.filePath) {
       try {
-        const absolutePath = path.join(config.music.musicPath, track.filePath);
+        const absolutePath = path.join(config.music.musicPaths[0], track.filePath);
 
         if (fs.existsSync(absolutePath)) {
           fs.unlinkSync(absolutePath);

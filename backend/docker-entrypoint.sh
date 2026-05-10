@@ -63,7 +63,7 @@ if [ -z "$SETTINGS_ENCRYPTION_KEY" ]; then
 fi
 
 echo "[START] Kima Backend starting on port ${PORT:-3006}..."
-echo "[CONFIG] Music path: ${MUSIC_PATH:-/music}"
+echo "[CONFIG] Music path(s): ${MUSIC_PATHS:-${MUSIC_PATH:-/music}}"
 echo "[CONFIG] Environment: ${NODE_ENV:-production}"
 
 # Execute the main command

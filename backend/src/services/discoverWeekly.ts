@@ -227,7 +227,7 @@ export class DiscoverWeeklyService {
             discoveryLogger.section("STEP 4: CREATE BATCH & JOBS");
 
             // Get music path from settings (already fetched at line 276) with fallback to app config
-            const musicPath = settings?.musicPath || appConfig.music.musicPath;
+            const musicPath = settings?.musicPath || appConfig.music.musicPaths[0];
 
             const batch = await prisma.$transaction(async (tx) => {
                 // Create discovery batch

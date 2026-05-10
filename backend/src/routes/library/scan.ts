@@ -10,7 +10,7 @@ const router = Router();
 
 router.post("/scan", requireAdmin, async (req, res) => {
   try {
-    if (!config.music.musicPath) {
+    if (!config.music.musicPaths[0]) {
       return res.status(500).json({
         error:
           "Music path not configured. Please set MUSIC_PATH environment variable.",
@@ -29,13 +29,13 @@ router.post("/scan", requireAdmin, async (req, res) => {
 
     const job = await scanQueue.add("scan", {
       userId,
-      musicPath: config.music.musicPath,
+      musicPaths: config.music.musicPaths,
     });
 
     res.json({
       message: "Library scan started",
       jobId: job.id,
-      musicPath: config.music.musicPath,
+      musicPaths: config.music.musicPaths,
     });
   } catch (error) {
     logger.error("Scan trigger error:", error);
