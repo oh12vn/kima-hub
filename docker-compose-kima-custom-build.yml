@@ -1,0 +1,22 @@
+services:
+    kima:
+        image: docker.io/library/kima:customize
+        container_name: kima
+        ports:
+            - "3030:3030"
+        volumes:
+            - /path/to/your/music1:/music
+            - /path/to/your/music2:/music2
+            # add more volumes as needed 
+            - /path/to/your/models:/app/models
+            - kima_data:/data
+        environment:
+            - TZ=America/New_York
+            - MUSIC_PATHS=/music,/music2,/music3
+        # Required for Lidarr webhook integration on Linux
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        restart: unless-stopped
+
+volumes:
+    kima_data:
