@@ -2,7 +2,7 @@
 # Contains: Backend, Frontend, PostgreSQL, Redis, Audio Analyzer (Essentia AI)
 # Usage: docker run -d -p 3030:3030 -v /path/to/music:/music kima/kima
 
-FROM node:22-slim
+FROM docker.io/library/essentia-tensorflow:4ec93bb
 
 # Add PostgreSQL 16 repository (Debian Bookworm only has PG15 by default)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -28,8 +28,11 @@ RUN apt-get install -y --no-install-recommends \
     python3-pip \
     python3-numpy \
     # Build tools (needed for some Python packages)
-    build-essential \
+    #build-essential \
     python3-dev \
+    && rm -rf /var/lib/apt/lists/* && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Create directories
@@ -76,11 +79,11 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     'transformers>=4.30.0'
 
 # tensorflow-cpu + essentia-tensorflow (AMD64 only -- no ARM64 wheels upstream)
-RUN pip3 install --no-cache-dir --break-system-packages \
-    'tensorflow-cpu>=2.13.0,<2.14.0' \
-    && pip3 install --no-cache-dir --break-system-packages --no-deps \
-    essentia-tensorflow \
-    || echo "[ARM64] tensorflow-cpu/essentia-tensorflow unavailable -- MusiCNN analysis disabled"
+#RUN pip3 install --no-cache-dir --break-system-packages \
+#    'tensorflow-cpu>=2.13.0,<2.14.0' \
+#    && pip3 install --no-cache-dir --break-system-packages --no-deps \
+#    essentia-tensorflow \
+#    || echo "[ARM64] tensorflow-cpu/essentia-tensorflow unavailable -- MusiCNN analysis disabled"
 
 # Keep scipy/pandas aligned with tensorflow's numpy constraint in the shared Python env.
 # Force exact wheel versions to avoid resolver drift leaving incompatible pandas/scipy.
